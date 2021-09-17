@@ -1,0 +1,18 @@
+#@ load("@ytt:data", "data")
+
+apiVersion: kbld.k14s.io/v1alpha1
+kind: Config
+sources:
+- image: docker.io/ciberkleid/hello-app
+  path: src
+  pack:
+    build:
+      builder: paketobuildpacks/builder
+
+#@ if/end data.values.helloApp.pushImageTag:
+---
+apiVersion: kbld.k14s.io/v1alpha1
+kind: Config
+destinations:
+- image: docker.io/ciberkleid/hello-app
+  newImage: #@ data.values.helloApp.pushImageTag

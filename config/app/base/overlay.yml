@@ -1,0 +1,8 @@
+#@ load("@ytt:overlay", "overlay")
+#@ load("@ytt:data", "data")
+
+#@overlay/match by=overlay.and_op(overlay.subset({"kind": "Deployment"}), overlay.subset({"metadata": {"name": data.values.helloApp.name}}))
+---
+spec:
+  #@overlay/match missing_ok=True
+  replicas: 3

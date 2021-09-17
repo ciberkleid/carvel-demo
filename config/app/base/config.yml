@@ -1,0 +1,47 @@
+#@ load("@ytt:data", "data")
+
+#@ def labels():
+app: #@ data.values.helloApp.name
+#@ end
+
+#@ if/end data.values.namespace.owner:
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: #@ data.values.namespace.name
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: #@ data.values.namespace.name
+  name: #@ data.values.helloApp.name
+spec:
+  selector: #@ labels()
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: #@ data.values.namespace.name
+  name: #@ data.values.helloApp.name
+spec:
+  selector:
+    matchLabels: #@ labels()
+  template:
+    metadata:
+      labels: #@ labels()
+    spec:
+      containers:
+        - name: app
+          image: docker.io/ciberkleid/hello-app
+          ports:
+            - containerPort: 80
+          env:
+            - name: HELLO_MSG
+              value: #@ data.values.helloApp.message
+            - name: REDIS_ADDRESS
+              value: #@ data.values.redis_address

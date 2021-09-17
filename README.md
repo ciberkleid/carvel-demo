@@ -17,7 +17,7 @@ docker run --name hello-redis -p 6379:6379 redis
 
 #### Start app
 ```shell
-go run app.go
+(cd src && go run app.go)
 ```
 OR
 ```shell
@@ -41,3 +41,40 @@ Stop redis with:
 ```shell
 docker stop hello-redis
 ```
+
+## With Carvel
+
+#### Optional: Sync dependencies and lock versions
+
+Redis is vendored into the application packaging.
+
+Sync vendored files and generate lock file for vendor files:
+> Note: Uncomment _--locked_ to sync using existing vendir.lock.yml file
+```shell
+if [[ ! -f config/vendir.lock.yml ]]; then \
+  vendir sync --chdir config
+else \
+  vendir sync --chdir config --locked
+fi
+```
+
+#### Generate YAML config
+
+Generate YAML
+> Note: Uses locked image versions.
+> Delete lock files to use latest available images.
+```shell
+ytt -f config/app \
+    --data-values-file config/overrides/override-values.yml \
+    | kbld -f- --imgpkg-lock-output config/app/images.lock.yml > hello-app.yml
+```
+
+
+### WIP ###
+
+TO-DO:
+- imgpkg package and unpackage (pull/copy)
+- kapp -a hello-app -f dependencies.yml -f resources.yml
+
+
+

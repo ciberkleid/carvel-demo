@@ -1,0 +1,34 @@
+#@ load("@ytt:data", "data")
+
+#@ if data.values.helloApp.ingress.hostname and data.values.helloApp.ingress.domain:
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    #@ if data.values.helloApp.ingress.secret.certificate and data.values.helloApp.ingress.secret.privateKey:
+    ingress.kubernetes.io/force-ssl-redirect: "true"
+    #@ end
+  name: #@ data.values.helloApp.name
+spec:
+  rules:
+    - host: #@ "{}.{}".format(data.values.helloApp.ingress.hostname, data.values.helloApp.ingress.domain)
+      http:
+        paths:
+          - pathType: ImplementationSpecific
+            path: /
+            backend:
+              service:
+                name: #@ data.values.helloApp.name
+                port:
+                  number: 80
+  #@ if getattr(data.values.helloApp.ingress, "class"):
+  ingressClassName: #@ getattr(data.values.helloApp.ingress, "class")
+  #@ end
+  #@ if data.values.helloApp.ingress.secret.certificate and data.values.helloApp.ingress.secret.privateKey:
+  tls:
+    - hosts:
+        - #@ "{}.{}".format(data.values.helloApp.ingress.hostname, data.values.helloApp.ingress.domain)
+      secretName: #@ "{}-tls".format(data.values.helloApp.ingress.domain)
+  #@ end
+#@ end
