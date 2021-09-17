@@ -8,11 +8,11 @@ Message "world" can be configured:
     
 Counter tracks requests per message (_world_, _sunshine_, etc) and is stored in Redis.
 
-## To run locally:
+## Run locally:
 
 #### Start redis
 ```shell
-docker run --name hello-redis -p 6379:6379 redis
+docker run -d --rm --name hello-redis -p 6379:6379 redis
 ```
 
 #### Start app
@@ -21,7 +21,7 @@ docker run --name hello-redis -p 6379:6379 redis
 ```
 OR
 ```shell
-HELLO_MSG=friend go run app.go
+(cd src && HELLO_MSG=friend go run app.go)
 ```
 
 #### Send requests:
@@ -42,7 +42,7 @@ Stop redis with:
 docker stop hello-redis
 ```
 
-## With Carvel
+## Deploy to Kubernetes using Carvel
 
 #### Optional: Sync dependencies and lock versions
 
