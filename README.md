@@ -44,19 +44,30 @@ docker stop hello-redis
 
 ## Deploy to Kubernetes using Carvel
 
-#### Optional: Sync dependencies and lock versions
+[Carvel](https://carvel.dev) comprises a set of single-purpose, composable tools to facilitate a workflow for deploying applications to Kubernetes.
 
-Redis is vendored into the application packaging.
+The following steps will introduce most of the Carvel tools to deploy this demo app and its Redis dependency, including:
+- vendoring in Redis
+- building and publishing the demo app image
+- managing YAML configuration using templates and overlays
+- packaging for online or air-gapped environments
+- deployment to Kubernetes
 
-Sync vendored files and generate lock file for vendor files:
-> Note: Uncomment _--locked_ to sync using existing vendir.lock.yml file
+#### Vendor in Redis dependency
+
+[vendir](https://carvel.dev/vendir/) can be used to vendor a dependency into an application.
+
+Review the file [config/vendir.yml](config/vendir.yml).
+It specifies a git repo as a source of Redis YAML config files.
+
+Run the following command to sync the remote files to your local machine.
+This step also generates a lock file that can be used to pin the version of the vendored files in subsequent syncs.
+> Note: If you already have a vendir lock file and want to sync using the pinned version, uncomment the  _--locked_ flag.
 ```shell
-if [[ ! -f config/vendir.lock.yml ]]; then \
-  vendir sync --chdir config
-else \
-  vendir sync --chdir config --locked
-fi
+vendir sync --chdir config # --locked
 ```
+
+Use `git status` to see the changes.
 
 #### Generate YAML config
 
