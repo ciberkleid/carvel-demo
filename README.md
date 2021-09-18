@@ -124,7 +124,7 @@ ytt -f config/app \
 
 Notice that the YAML output no longer contains the resources of type `Config` with `apiVersion: kbld.k14s.io/v1alpha1`.
 This YAML can be applied directly to Kubernetes.
-However, in the next steps you will explore a tool for packaging the application for distribution first.
+However, in the next steps you will first explore a tool for packaging the application for distribution.
 
 ### WIP ###
 
