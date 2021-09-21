@@ -13,7 +13,7 @@ However, you can also skip to the Carvel instructions below, as the precise beha
 
 ## Deploy to Kubernetes using Carvel
 
-The following steps will introduce most of the Carvel tools to **package, distribute and/or deploy** hello-app and its Redis dependency, including:
+The following steps will introduce most of the Carvel tools to **configure, package, distribute and/or deploy** hello-app and its Redis dependency, including:
 - vendoring in Redis
 - building and publishing the hello-app image
 - managing YAML configuration using templates and overlays
@@ -45,7 +45,7 @@ To set up the kind cluster, run:
 ```shell
 curl https://kind.sigs.k8s.io/examples/kind-with-registry.sh -o kind-with-registry.sh \
   && chmod +x kind-with-registry.sh \
-  && ./kind-with-registry.sh
+  && ./kind-with-registry.sh \
   && kubectl cluster-info --context kind-kind
 ```
 
