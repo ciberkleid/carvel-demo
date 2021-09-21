@@ -1,0 +1,11 @@
+apiVersion: vendir.k14s.io/v1alpha1
+directories:
+- contents:
+  - git:
+      commitTitle: 'Merge pull request #28355 from Kartik494/ingressControllerNamespace...'
+      sha: b56a0db979751911f16e247f2263dc31a2fe899d
+      tags:
+      - snapshot-initial-v1.22-599-gb56a0db97
+    path: redis
+  path: config/dependencies
+kind: LockConfig

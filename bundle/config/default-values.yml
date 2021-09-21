@@ -2,21 +2,18 @@
 
 #! This file contains default config values
 #! To override these values, use override files
-
 ---
 namespace:
   name: carvel-demo
   #! Set to null to omit Namespace resource
   owner: null
 
-redis_address: hello-redis.carvel-demo.svc.cluster.local
-
 helloApp:
   name: hello-app
   message: stranger
 
   #! Set to null to skip publishing image to registry
-  pushImageTag: docker.io/ciberkleid/hello-app
+  pushImageTag: gcr.io/fe-ciberkleid/carvel-demo/hello-app
 
   ingress:
     hostname: null

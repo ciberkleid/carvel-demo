@@ -52,7 +52,7 @@ func main() {
     mux := http.NewServeMux()
     mux.HandleFunc("/", handler)
     mux.HandleFunc("/*", handler)
-    log.Fatal(http.ListenAndServe(":80", mux))
+    log.Fatal(http.ListenAndServe(":8080", mux))
 }
 
 func getEnv(key, fallback string) string {

@@ -1,0 +1,25 @@
+#@ load("@ytt:overlay", "overlay")
+#@ load("@ytt:data", "data")
+
+#@ def redis():
+metadata:
+  labels:
+    app: redis
+#@ end
+
+#! overlay.subset() also accepts YAML fragments
+#@overlay/match by=overlay.subset(redis()), expects="0+"
+---
+metadata:
+  #@overlay/match missing_ok=True
+  namespace: #@ data.values.namespace.name
+
+#@overlay/match by=overlay.and_op(overlay.subset(redis()), overlay.subset({"metadata": {"name": "redis-leader"}})), expects="2+"
+---
+metadata:
+  name: #@ data.values.helloApp.name + "-redis-leader"
+
+#@overlay/match by=overlay.and_op(overlay.subset(redis()), overlay.subset({"metadata": {"name": "redis-follower"}})), expects="2+"
+---
+metadata:
+  name: #@ data.values.helloApp.name + "-redis-follower"

@@ -1,0 +1,8 @@
+namespace:
+  name: hello-app
+  #! Set to null to omit Namespace resource
+  owner: null
+
+helloApp:
+  name: hello-friends
+  message: friends

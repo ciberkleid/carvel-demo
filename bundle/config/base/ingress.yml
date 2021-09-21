@@ -21,7 +21,7 @@ spec:
               service:
                 name: #@ data.values.helloApp.name
                 port:
-                  number: 80
+                  number: 8080
   #@ if getattr(data.values.helloApp.ingress, "class"):
   ingressClassName: #@ getattr(data.values.helloApp.ingress, "class")
   #@ end

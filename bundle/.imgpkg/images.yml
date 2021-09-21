@@ -1,0 +1,13 @@
+---
+apiVersion: imgpkg.carvel.dev/v1alpha1
+images:
+- annotations:
+    kbld.carvel.dev/id: docker.io/redis:6.0.5
+  image: index.docker.io/library/redis@sha256:800f2587bf3376cb01e6307afe599ddce9439deafbd4fb8562829da96085c9c5
+- annotations:
+    kbld.carvel.dev/id: gcr.io/fe-ciberkleid/carvel-demo/hello-app
+  image: gcr.io/fe-ciberkleid/carvel-demo/hello-app@sha256:2ddea00005d8f2c436b8f7144e1e31ef20ac6dd1403bf3d04b196531e679b0fe
+- annotations:
+    kbld.carvel.dev/id: gcr.io/google_samples/gb-redis-follower:v2
+  image: gcr.io/google_samples/gb-redis-follower@sha256:42707dbdccb4c8177523e2687c7b3cdb3d13473b0df1d3ef2c558fda09772c6f
+kind: ImagesLock

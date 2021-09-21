@@ -3,7 +3,7 @@
 apiVersion: kbld.k14s.io/v1alpha1
 kind: Config
 sources:
-- image: docker.io/ciberkleid/hello-app
+- image: gcr.io/fe-ciberkleid/carvel-demo/hello-app
   path: src
   pack:
     build:
@@ -14,5 +14,5 @@ sources:
 apiVersion: kbld.k14s.io/v1alpha1
 kind: Config
 destinations:
-- image: docker.io/ciberkleid/hello-app
+- image: gcr.io/fe-ciberkleid/carvel-demo/hello-app
   newImage: #@ data.values.helloApp.pushImageTag

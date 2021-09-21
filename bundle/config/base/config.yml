@@ -4,13 +4,6 @@
 app: #@ data.values.helloApp.name
 #@ end
 
-#@ if/end data.values.namespace.owner:
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: #@ data.values.namespace.name
-
 ---
 apiVersion: v1
 kind: Service
@@ -20,8 +13,8 @@ metadata:
 spec:
   selector: #@ labels()
   ports:
-    - port: 80
-      targetPort: 80
+    - port: 8080
+      targetPort: 8080
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -37,11 +30,11 @@ spec:
     spec:
       containers:
         - name: app
-          image: docker.io/ciberkleid/hello-app
+          image: gcr.io/fe-ciberkleid/carvel-demo/hello-app
           ports:
-            - containerPort: 80
+            - containerPort: 8080
           env:
             - name: HELLO_MSG
               value: #@ data.values.helloApp.message
             - name: REDIS_ADDRESS
-              value: #@ data.values.redis_address
+              value: #@ data.values.helloApp.name + "-redis-leader." + data.values.namespace.name + ".svc.cluster.local:6379"
