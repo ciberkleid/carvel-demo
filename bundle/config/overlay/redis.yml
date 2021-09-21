@@ -23,3 +23,18 @@ metadata:
 ---
 metadata:
   name: #@ data.values.helloApp.name + "-redis-follower"
+
+#@overlay/match by=overlay.and_op(overlay.subset(redis()), overlay.subset({"metadata": {"labels": { "app": "redis", "role": "follower"}}}), overlay.subset({"kind": "Deployment"}))
+---
+spec:
+  template:
+    spec:
+      containers:
+        #@overlay/match by=overlay.map_key("name")
+        - name: follower
+          #@overlay/match missing_ok=True
+          env:
+            - name: GET_HOSTS_FROM
+              value: env
+            - name: REDIS_LEADER_SERVICE_HOST
+              value: #@ data.values.helloApp.name + "-redis-leader"

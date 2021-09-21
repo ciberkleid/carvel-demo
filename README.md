@@ -130,7 +130,7 @@ To achieve #1 above, take a look at the kbld configuration file, [kbld.yml](bund
 - The `sources` section tells kbld to use buildpacks to create an image for hello-app, located in the [src](src) folder.
     - _Buildpacks_ are a separate technology that provides a consistent and structured way to build images, without the need to write Dockerfiles or other custom code.
       You can learn more [here](https://buildpacks.io).
-- The `destinations` section says to push the image to Docker Hub if and only if the `helloApp.pushImageTag` value is set.
+- The `destinations` section says to push the image to the registry if and only if the `helloApp.pushImageTag` value is set.
 
 > **Important:** If you are not using kind with a local registry at `localhost:5000`, update the value of `helloApp.pushImageTag` in the [default values file](bundle/config/default-values.yml) so that it points to a registry to which you can publish, and make sure you are authenticated to your registry (i.e. run [docker login](https://docs.docker.com/engine/reference/commandline/login) at your command line). 
 
@@ -169,8 +169,7 @@ ytt -f bundle/config \
 
 Scroll through the output and notice that the image tags are now SHAs.
 
-Re-run the last command above.
-Notice that it runs much more quickly since it does not have to build hello-app again or resolve the redis tags.
+Notice that kbld ran much more quickly the with the lock file as input since it did not have to build hello-app again or resolve the redis tags.
 You can delete the lock file (or the data for any particular image in the lock file) to force kbld to re-build or re-resolve a tag.
 
 The YAML output can be applied directly to Kubernetes.
@@ -181,7 +180,7 @@ This is fine if your default values file does not filter out an image that a use
 ```shell
 ytt -f bundle/kbld.yml \
     -f bundle/config \
-    -f bundle/.imgpkg/images.yml
+    -f bundle/.imgpkg/images.yml \
     | kbld -f- --imgpkg-lock-output bundle/.imgpkg/images.yml
 ```
 
@@ -189,7 +188,7 @@ ytt -f bundle/kbld.yml \
 
 [imgpkg](https://carvel.dev/imgpkg) packages files into an OCI image so that they can be easily stored and distributed using an OCI registry.
 It also makes it easy to unpack the contents.
-In addition, imgpkg can copy any images referenced to a local registry, making it a very useful tool for air-gapped environments.
+In addition, imgpkg can copy any images referenced to a target registry, making it a very useful tool for air-gapped environments.
 
 Run the following command to package the demo app and publish it to a registry.
 
@@ -227,8 +226,9 @@ imgpkg pull -b localhost:5000/hello-app-bundle:v1.0.0 \
             -o temp/hello-app-bundle
 ```
 
-Your friends can create/update their own [overrides values file](values.yml) and run ytt and kbld to process the configuration.
-In this case, let's store the YAML output in a file to use later.
+Your friends can create/update their own overrides values file and run ytt and kbld to process the configuration.
+In this case, let's say that your friends added the override file [values.yml](values.yml).
+Also, let's store the YAML output in a file to use later.
 ```shell
 ytt -f temp/hello-app-bundle/config \
     -f temp/hello-app-bundle/.imgpkg/images.yml \
@@ -305,7 +305,7 @@ Notice that `imgpkg copy` updated the references to point to the target ("intern
 >   image: localhost:5000/hello-app-bundle-internal@sha256:ab70844a842cf3b1440a733da9851174d2c981e926d23a35041b767bd8521c9b
 ```
 
-Your co-workers can create their own [overrides values file](values2.yml) and run ytt and kbld to process the configuration.
+Your co-workers can create their own overrides values file (e.g. [values2.yml](values2.yml)) and run ytt and kbld to process the configuration.
 They **must** use the `.imgpkg/images.yml` to ensure all resources are pulled from the internal registry.
 Again, let's store the YAML output in a file to use later.
 ```shell
