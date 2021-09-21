@@ -1,0 +1,10 @@
+bundle/vendir.lock.yml
+bundle/.imgpkg/images.yml
+bundle/bundle.lock.yml
+bundle/config/dependencies/redis/
+temp/
+kind-with-registry.sh
+_EXAMPLE/
+
+
+
