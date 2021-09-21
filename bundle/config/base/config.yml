@@ -30,7 +30,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: gcr.io/fe-ciberkleid/carvel-demo/hello-app
+          image: localhost:5000/hello-app
           ports:
             - containerPort: 8080
           env:

@@ -13,7 +13,7 @@ helloApp:
   message: stranger
 
   #! Set to null to skip publishing image to registry
-  pushImageTag: gcr.io/fe-ciberkleid/carvel-demo/hello-app
+  pushImageTag: localhost:5000/hello-app
 
   ingress:
     hostname: null

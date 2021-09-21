@@ -13,7 +13,7 @@ However, you can also skip to the Carvel instructions below, as the precise beha
 
 ## Deploy to Kubernetes using Carvel
 
-The following steps will introduce most of the Carvel tools to **distribute and/or deploy** hello-app and its Redis dependency, including:
+The following steps will introduce most of the Carvel tools to **package, distribute and/or deploy** hello-app and its Redis dependency, including:
 - vendoring in Redis
 - building and publishing the hello-app image
 - managing YAML configuration using templates and overlays
@@ -25,14 +25,37 @@ They can also be combined with non-Carvel tools, such as helm, kustomize, kubect
 
 #### Scenario
 
-For this tutorial, assume you have written hello-app, utilizing Redis as a data store, and you want to package it so that you can easily share it with your friends and co-workers. Your friends can deploy the app to environments with internet access, but your co-workers are restricted to air-gapped environments (no internet access). To make it easy for them to download and deploy, you decide you want to vendor Redis into the application package, and you want to provide the deployment YAML for Kubernetes, with hooks for your friends and co-workers to make configuration changes.
+For this tutorial, assume you have written hello-app, utilizing Redis as a data store, and you want to package it so that you can easily share it with your friends and co-workers.
+Your friends can deploy the app to environments with internet access, but your co-workers are restricted to air-gapped environments (no internet access).
+To make it easy for them to download and deploy, you decide you want to vendor Redis into the application package, and you want to provide the deployment YAML for Kubernetes, with hooks for your friends and co-workers to make configuration changes.
+
+#### Pre-requisites
+- [Carvel](https://carvel.dev/#whole-suite) suite installed locally
+- Docker installed locally
+- Access to a Kubernetes cluster
+- Access to an image registry (for publishing images)
+
+One option for the cluster and registry is [kind with local registry](https://kind.sigs.k8s.io/docs/user/local-registry).
+This starts a Kubernetes cluster running on Docker on your local machine, with an image registry listening on `localhost:5000`.
+That is what is used in the examples below.
+
+To set up the kind cluster, run:
+```shell
+curl https://kind.sigs.k8s.io/examples/kind-with-registry.sh -o kind-with-registry.sh \
+  && chmod +x kind-with-registry.sh \
+  && ./kind-with-registry.sh
+  && kubectl cluster-info --context kind-kind
+```
+
+**Let's get started!**
 
 #### Vendor in Redis dependency
 
-You can include installation instructions with your app stating that Redis is a prerequisite and leave it to each user to figure out how to provide a Redis instance.
-However, it would make life easier for your friends and co-workers—and more predictable for hello-app deployments—if you packaged Redis into your application.
+hello-app uses Redis to store request counters.
+You could simply include installation instructions with your app stating that Redis is a prerequisite and leave it to your friends and co-workers to figure out how to provide a Redis instance.
+However, it would make life easier for them—and more predictable for hello-app deployments—if you packaged Redis into your application.
 
-[vendir](https://carvel.dev/vendir) can be used to ensure data sources are provided in a consistent manner. In this case, you can use it to provide Redis as part of the hello-app package.
+[vendir](https://carvel.dev/vendir) can be used to ensure data sources are provided in a consistent manner. In this case, you can use it to provide Redis resources as part of the hello-app package.
 
 Review [vendir.yml](bundle/vendir.yml).
 It specifies a git repo as a source of Redis YAML config files, as well as a destination directory for the sync.
@@ -46,6 +69,7 @@ vendir sync --chdir bundle # --locked
 
 This command can take some time to complete.
 When it is done, use `git status` to see the changes.
+You should see a new directory with Redis resources, as well as the vendir lock file.
 
 #### Generate YAML config
 
@@ -53,7 +77,7 @@ When it is done, use `git status` to see the changes.
 
 For example, look at [config.yml](bundle/config/base/config.yml).
 It contains comments that begin with '#@ ' with instructions for interpolating values or YAML fragments.
-These comments are more powerful than simple templating; they are written in a Python-like language called [Starlark](https://github.com/google/starlark-go), so they can include modules, functions, and conditional/looping logic.
+These comments are more powerful than simple templating; they are written in a Python dialect called [Starlark](https://github.com/google/starlark-go), so they can include modules, functions, and conditional/looping logic.
 In this file you can see some examples:
 - a module import (`load(...)`)
 - a function definition (`def labels()`)
@@ -63,29 +87,32 @@ Default values for interpolation are specified in [default-values.yml](bundle/co
 
 ytt also supports overlays.
 Take a look at [redis.yml](bundle/config/overlay/redis.yml).
-The Starlark code in this file instructs ytt to identify all YAML resources with `metadata.labels.app: redis` and set the `metadata.namespace` field (the value for the namespace field is specified in the [default values file](bundle/config/default-values.yml)).
-This overlay matching logic will match the Redis resources that you are vendoring in, so it makes sense to keep these files in their original state and modify the resources using overlays.
+The Starlark code in this file instructs ytt to identify all YAML resources with `metadata.labels.app: redis` and set the `metadata.namespace` field (the default value for the namespace field is specified in the [default values file](bundle/config/default-values.yml)).
+Overlays enable you to modify YAML that is not templated, and to modify resources without changing the original file.
+Using overlays will enable you to sync updated Redis files in the future without overwriting the configuration changes you want to make.
 
 Run the following command to process the templates and overlays and produce pure YAML.
 > Note: This command will simply output YAML to the terminal for review.
 ```shell
-ytt -f bundle/config \
-    --data-values-file values.yml
+ytt -f bundle/config
 ```
 
 Notice that the YAML contains the Redis resources as well as the Deployment and Service for the demo app (3 Deployments and 3 Services in total).
 All Starlark markup has been resolved.
 
 This YAML can be applied directly to Kubernetes.
-However, this YAML is not specific enough to guarantee reproducible deployments because the images use mutable tags instead of immutable SHAs. To see this, you can re-run the above command and add ` | grep "image:"` at the end. The output should look something like this:
+However, this YAML is not specific enough to guarantee reproducible deployments because the images use mutable tags instead of immutable SHAs.
+To see this, you can re-run the above command and add ` | grep "image:"` at the end.
+The output should look something like this:
 ```yaml
-        image: gcr.io/fe-ciberkleid/carvel-demo/hello-app
+        image: localhost:5000/hello-app
         image: gcr.io/google_samples/gb-redis-follower:v2
         image: docker.io/redis:6.0.5
 ```
 
 It would be better to replace these tags with their respective SHAs.
-Carvel provides a tool to automate this process. Continue to the next step to learn more.
+Carvel provides a tool to automate this process.
+Continue to the next step to learn more.
 
 #### Resolve images
 
@@ -103,8 +130,7 @@ To achieve #1 above, take a look at the kbld configuration file, [kbld.yml](bund
       You can learn more [here](https://buildpacks.io).
 - The `destinations` section says to push the image to Docker Hub if and only if the `helloApp.pushImageTag` value is set.
 
-> **Important:** Update the value of `helloApp.pushImageTag` in the [default values file](bundle/config/default-values.yml) so that it points to a registry to which you can publish. 
-> Also, make sure you are authenticated (i.e. run [docker login](https://docs.docker.com/engine/reference/commandline/login) at your command line). 
+> **Important:** If you are not using kind with a local registry at `localhost:5000`, update the value of `helloApp.pushImageTag` in the [default values file](bundle/config/default-values.yml) so that it points to a registry to which you can publish, and make sure you are authenticated to your registry (i.e. run [docker login](https://docs.docker.com/engine/reference/commandline/login) at your command line). 
 
 Run kbld on the YAML configuration files.
 This can be done on the raw YAML or on the ytt-processed YAML.
@@ -118,9 +144,13 @@ kbld  -f bundle/kbld.yml \
       > /dev/null
 ```
 
-Check your registry to verify that the hello-app image was published. This shows that objective #1 above was achieved.
+Check your registry to verify that the hello-app image was published.
+This shows that objective #1 above was achieved.
+```shell
+curl localhost:5000/v2/hello-app/tags/list
+```
 
-Also, check the lock file that was created, [images.yml](bundle/.imgpkg/images.yml).
+Also, verify that the lock file that was created, [images.yml](bundle/.imgpkg/images.yml).
 Notice that the lock file contains a mapping of original image tags to resolved SHAs.
 This validates that kbld resolved the tags, showing that objective #2 above was achieved.
 
@@ -132,27 +162,26 @@ In this case, you are running kbld again, but here it is only replacing the imag
 ```shell
 ytt -f bundle/config \
     -f bundle/.imgpkg/images.yml \
-    --data-values-file values.yml \
     | kbld -f-
 ```
 
-You can also combine the two commands above into a single command:
-```shell
-ytt -f bundle/kbld.yml \
-    -f bundle/config \
-    -f bundle/.imgpkg/images.yml \
-    --data-values-file values.yml \
-    | kbld -f- --imgpkg-lock-output bundle/.imgpkg/images.yml
-```
-
-Try deleting the lines that pertain to hello-app in [images lock file](bundle/.imgpkg/images.yml) (3 lines total to delete), leaving only the redis images.
+Scroll through the output and notice that the image tags are now SHAs.
 
 Re-run the last command above.
-Watch the output to see that the image is rebuilt.
-Check the lock file again - it has been updated with the image SHA to enable re-using the image, rather than re-building, in future builds.
+Notice that it runs much more quickly since it does not have to build hello-app again or resolve the redis tags.
+You can delete the lock file (or the data for any particular image in the lock file) to force kbld to re-build or re-resolve a tag.
 
 The YAML output can be applied directly to Kubernetes.
 However, Carvel also provides a tool for packaging applications for distribution. Continue to the next step to learn more.
+
+Note: You can combine the two commands above into a single command as shown below.
+This is fine if your default values file does not filter out an image that a user might need if they set custom values.
+```shell
+ytt -f bundle/kbld.yml \
+    -f bundle/config \
+    -f bundle/.imgpkg/images.yml
+    | kbld -f- --imgpkg-lock-output bundle/.imgpkg/images.yml
+```
 
 #### Package as image for distribution
 
@@ -160,70 +189,95 @@ However, Carvel also provides a tool for packaging applications for distribution
 It also makes it easy to unpack the contents.
 In addition, imgpkg can copy any images referenced to a local registry, making it a very useful tool for air-gapped environments.
 
-For convenience, use an environment variable to set the image name and tag to publish:
-```shell
-# sample value:
-# BUNDLE_IMG=gcr.io/fe-ciberkleid/carvel-demo/hello-app-bundle:v1.0.0
-BUNDLE_IMG=<your-value-here>
-```
 Run the following command to package the demo app and publish it to a registry.
 
 ```shell
-imgpkg push -b $BUNDLE_IMG \
+imgpkg push -b localhost:5000/hello-app-bundle:v1.0.0 \
             -f bundle \
             --lock-output bundle/bundle.lock.yml
 ```
 
 Check your registry to verify that the hello-app-bundle image was published. 
+```shell
+curl localhost:5000/v2/hello-app-bundle/tags/list
+```
+
+The output should look something like this.
+```json
+{
+  "name": "hello-app-bundle",
+  "tags": [
+    "v1.0.0"
+  ]
+}
+```
+
+In contrast to the hello-app image that you published previously, this bundle includes all of the YAML templates for hello-app and Redis (i.e. everything in the [bundle](bundle) directory). Your friends and co-workers can just download this bundle rather than cloning a git repo or other data source.
 
 #### Download distribution bundle
 
-At this point, you can tell all your friends about your cool new hello-app-bundle that uses Redis as a data store.
-They can all download the bundle and deploy it to their own Kubernetes environments!
-To do this, they can run:
+The imgpkg bundle is all that your friends will need.
+Let's go through the workflow they would follow.
+
+Use `imgpkg pull` to download and unpack the imgpkg bundle to a local directory:
 ```shell
-imgpkg pull -b $BUNDLE_IMG -o temp/hello-app-bundle
+imgpkg pull -b localhost:5000/hello-app-bundle:v1.0.0 \
+            -o temp/hello-app-bundle
 ```
 
-Notice that the pull command downloaded and unpacked the OCI image contents to the local directory.
-Your friends can create/update their own [overrides values file](values.yml) and run ytt and kbld to process the configuration:
+Your friends can create/update their own [overrides values file](values.yml) and run ytt and kbld to process the configuration.
+In this case, let's store the YAML output in a file to use later.
 ```shell
 ytt -f temp/hello-app-bundle/config \
     -f temp/hello-app-bundle/.imgpkg/images.yml \
     --data-values-file values.yml \
-    | kbld -f-
+    | kbld -f- \
+    > hello-friends.yml
 ```
 
 This YAML can be applied directly to Kubernetes.
-Before doing that, however, it turns out your co-workers are also interested in deploying hello-app, but they are restricted to an air-gapped environment. The existing bundle references images on the public internet (on Docker Hub and GCR, in this case), so it will not work for them.
 
-Luckily, imgpkg can also help with distribution of packages within air-gapped environments. Continue to the next step to learn more.
+Before doing that, however, notice that the tags in this YAML point to images on the internet. This will work for your friends, but not your co-workers. Let's first make sure your co-workers can access all the resources they need, too.
 
 #### Copy distribution bundle for air-gapped environments
 
-imgpkg has a "copy" command that copies not only the bundle itself, but also all **all of the images it references** to a destination of your choice.
+imgpkg has a "copy" command that copies a bundle **and all of the images it references** to a destination of your choice.
+This is the perfect solution for your co-workers.
 
-For convenience, use an environment variable to store the address of the internal registry.
-> Note: Since this is a demo, the sample value below actually uses a remote registry as well, but suspend disbelief for a moment and pretend that the `carvel-demo/internal` namespace is indeed only accessible on the internal network.
-> Either way, please set the value to a registry to which you can publish and make sure you are authenticated at the command line.
+Let's go through the workflow they would follow.
+
+Use `imgpkg copy` to copy the bundle to an internal registry.
+For the purposes of this demo, we'll use another namespace in the same local registry to represent an internal registry in a co-worker's environment, and we'll assume there is a jump box with access to the internet and the local registry.
 ```shell
-# sample value:
-# INTERNAL_REPO=gcr.io/fe-ciberkleid/carvel-demo/hello-app-bundle-internal
-INTERNAL_REPO=<your-value-here>
+imgpkg copy -b localhost:5000/hello-app-bundle:v1.0.0 \
+            --to-repo localhost:5000/hello-app-bundle-internal
 ```
 
-Next, copy the bundle internally.
-This command could, for example, be run from a jump box with access to both environments, or by copying to disk first.
+Check the "internal registry" to ensure that all images have been copied.
 ```shell
-imgpkg copy -b $BUNDLE_IMG --to-repo $INTERNAL_REPO
+curl localhost:5000/v2/hello-app-bundle-internal/tags/list
 ```
 
-Check you internal registry to ensure that all images have been copied.
-Notice that the original bundle is a single image, whereas the internal repo contains a number of images.
+The output should look something like this.
+You can compare the SHAs to those in the image lock to figure out which images are hello-app and Redis.
+```json
+{
+  "name": "hello-app-bundle-internal",
+  "tags": [
+    "sha256-ab70844a842cf3b1440a733da9851174d2c981e926d23a35041b767bd8521c9b.imgpkg",
+    "sha256-0a5f1a532ed79b7f8f0581b499f09f602c4cbc3dd6f87ba7282d78e42f3d6d68.imgpkg",
+    "v1.0.0",
+    "sha256-42707dbdccb4c8177523e2687c7b3cdb3d13473b0df1d3ef2c558fda09772c6f.imgpkg",
+    "sha256-800f2587bf3376cb01e6307afe599ddce9439deafbd4fb8562829da96085c9c5.imgpkg",
+    "sha256-0a5f1a532ed79b7f8f0581b499f09f602c4cbc3dd6f87ba7282d78e42f3d6d68.image-locations.imgpkg"
+  ]
+}
+```
 
 Your co-workers can now pull the internal copy of the bundle to their local machines:
 ```shell
-imgpkg pull -b $INTERNAL_REPO:v1.0.0 -o temp/hello-app-bundle-internal
+imgpkg pull -b localhost:5000/hello-app-bundle-internal:v1.0.0 \
+            -o temp/hello-app-bundle-internal
 ```
 
 Compare the contents of the `.imgpkg/images.yml` files in both directories:
@@ -232,31 +286,32 @@ diff temp/hello-app-bundle/.imgpkg/images.yml \
      temp/hello-app-bundle-internal/.imgpkg/images.yml
 ```
 
-The output might look something like this, with your respective registry values:
+The output might look something like this.
+Notice that `imgpkg copy` updated the references to point to the target ("internal") registry.
 ```shell
 6c6
 <   image: index.docker.io/library/redis@sha256:800f2587bf3376cb01e6307afe599ddce9439deafbd4fb8562829da96085c9c5
 ---
->   image: gcr.io/fe-ciberkleid/carvel-demo/hello-app-bundle-internal@sha256:800f2587bf3376cb01e6307afe599ddce9439deafbd4fb8562829da96085c9c5
+>   image: localhost:5000/hello-app-bundle-internal@sha256:800f2587bf3376cb01e6307afe599ddce9439deafbd4fb8562829da96085c9c5
 9c9
-<   image: gcr.io/fe-ciberkleid/carvel-demo/hello-app@sha256:7243c1434280d54579b39f1a26ec9a01b301a17bcb5e23a6b03fd4d1228bc549
----
->   image: gcr.io/fe-ciberkleid/carvel-demo/hello-app-bundle-internal@sha256:7243c1434280d54579b39f1a26ec9a01b301a17bcb5e23a6b03fd4d1228bc549
-12c12
 <   image: gcr.io/google_samples/gb-redis-follower@sha256:42707dbdccb4c8177523e2687c7b3cdb3d13473b0df1d3ef2c558fda09772c6f
 ---
->   image: gcr.io/fe-ciberkleid/carvel-demo/hello-app-bundle-internal@sha256:42707dbdccb4c8177523e2687c7b3cdb3d13473b0df1d3ef2c558fda09772c6f
+>   image: localhost:5000/hello-app-bundle-internal@sha256:42707dbdccb4c8177523e2687c7b3cdb3d13473b0df1d3ef2c558fda09772c6f
+12c12
+<   image: localhost:5000/hello-app@sha256:ab70844a842cf3b1440a733da9851174d2c981e926d23a35041b767bd8521c9b
+---
+>   image: localhost:5000/hello-app-bundle-internal@sha256:ab70844a842cf3b1440a733da9851174d2c981e926d23a35041b767bd8521c9b
 ```
 
-All image references have been updated to point to internal copies.
-
-Your co-workers can create/update their own [overrides values file](values.yml) and run ytt and kbld to process the configuration.
-They must use the `.imgpkg/images.yml` to ensure all resources are pulled from the internal registry.
+Your co-workers can create their own [overrides values file](values2.yml) and run ytt and kbld to process the configuration.
+They **must** use the `.imgpkg/images.yml` to ensure all resources are pulled from the internal registry.
+Again, let's store the YAML output in a file to use later.
 ```shell
 ytt -f temp/hello-app-bundle-internal/config \
     -f temp/hello-app-bundle-internal/.imgpkg/images.yml \
-    --data-values-file values.yml \
-    | kbld -f-
+    --data-values-file values2.yml \
+    | kbld -f- \
+    > hello-coworkers.yml
 ```
 
 This YAML can be applied directly to Kubernetes.
@@ -267,21 +322,14 @@ Continue to the next step to learn more.
 
 [kapp](https://carvel.dev/kapp) deploys resources to Kubernetes and enables you to operate on them as a group, tracking their relationship to each other as part of a single application and providing improved behavior for ordering of resources, obtaining logs, and more.
 
-Several times throughout this tutorial it was stated that YAML output could be directly applied to Kubernetes. You can choose any of those instances for this example. For simplicity, these commands will use the last example.
-
-Re-run the last command, but this time, pass the output to kapp.
-> Note: Using process substitution rather than piping to kapp preserves the ability to confirm at the prompt.
+Use kapp to apply the coworkers configuration.
 ```shell
-kapp deploy -a hello-app -c -f <(
-  ytt -f temp/hello-app-bundle-internal/config \
-  -f temp/hello-app-bundle-internal/.imgpkg/images.yml \
-  --data-values-file values.yml \
-  | kbld -f-)
+kapp deploy -a hello-coworkers -f hello-coworkers.yml
 ```
 
 Notice that kapp:
 - orders the resources (e.g. Namespace is applied first)
-- provides insight into what resources and operations that will be applied
+- provides insight into the resources and operations that will be applied
 - provides a prompt to enable evaluation before deploying
 
 Enter `y` at the prompt.
@@ -290,42 +338,37 @@ Notice that kapp:
 - provides output related to the deployment
 - waits for resources to be ready before completing
 
-Try a fe other kapp commands and notice how kapp treats the various resources as parts of a single aaplication
-
+Try a few other kapp commands and notice how kapp treats the various resources as parts of a single application:
 ```shell
-kapp list; kapp inspect -a educates; kapp logs -a educates
-kapp inspect -a educates --raw --tty=false | kbld inspect -f -
+kapp list
 ```
 
-#### TL;DR
-
-Cheet sheat.
-Remember to change registry values in the default-values.yml and the two env vars below.
 ```shell
-vendir sync --chdir bundle
+kapp inspect -a hello-coworkers
+```
 
-kbld  -f bundle/kbld.yml \
-      -f bundle/config \
-      --imgpkg-lock-output bundle/.imgpkg/images.yml \
-      > /dev/null
+```shell
+kapp logs -a hello-coworkers
+```
 
-BUNDLE_IMG=gcr.io/fe-ciberkleid/carvel-demo/hello-app-bundle:v1.0.0
-INTERNAL_REPO=gcr.io/fe-ciberkleid/carvel-demo/hello-app-bundle-internal
+```shell
+kapp inspect -a hello-coworkers --raw --tty=false | kbld inspect -f -
+```
 
-imgpkg push -b $BUNDLE_IMG \
-            -f bundle \
-            --lock-output bundle/bundle.lock.yml
-
-imgpkg copy -b $BUNDLE_IMG --to-repo $INTERNAL_REPO
-
-imgpkg pull -b $BUNDLE_IMG -o temp/hello-app-bundle
-
-imgpkg pull -b $INTERNAL_REPO:v1.0.0 -o temp/hello-app-bundle-internal
-
-
-kapp deploy -a hello-app -c -f <(
+With Carvel, it is also easier to deploy multiple instances of an application to the same namespace and manage each app as a whole.
+For example, with a slight change configuration, we can deploy a second instance of hello-app to an existing namespace:
+> Note: Using process substitution rather than piping to kapp preserves the ability to confirm at the prompt.
+```shell
+kapp deploy -a hello-partners -c -f <(
   ytt -f temp/hello-app-bundle-internal/config \
   -f temp/hello-app-bundle-internal/.imgpkg/images.yml \
-  --data-values-file values.yml \
+  --data-values-file values3.yml \
   | kbld -f-)
+```
+
+Re-run the kapp commands above using `-a hello-partners`.
+
+Delete the partner app:
+```shell
+kapp delete -a hello-partners
 ```
