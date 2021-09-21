@@ -6,7 +6,7 @@ This repo contains a demo/tutorial of Carvel tools using a simple demo app with 
 
 ## Demo application (hello-app)
 
-The _hello-app_ demo application returns "Hello world!" and a counter of requests. The counter is store in Redis, and "world" is configurable.
+The _hello-app_ demo application returns "Hello world!" and a counter of requests. The counter is stored in Redis, and "world" is configurable.
 
 To get a better understanding of the app, see [README2.md](README2.md).
 However, you can also skip to the Carvel instructions below, as the precise behavior of the app is not germane to the Carvel workflow.
@@ -25,15 +25,17 @@ They can also be combined with non-Carvel tools, such as helm, kustomize, kubect
 
 #### Scenario
 
-For this tutorial, assume you have written hello-app, utilizing Redis as a data store, and you want to package it so that you can easily share it with your friends and co-workers.
+Assume you have written [hello-app](src/hello-app.go) (nice job!), utilizing Redis as a data store, and you want to share it with your friends and co-workers.
 Your friends can deploy the app to environments with internet access, but your co-workers are restricted to air-gapped environments (no internet access).
-To make it easy for them to download and deploy, you decide you want to vendor Redis into the application package, and you want to provide the deployment YAML for Kubernetes, with hooks for your friends and co-workers to make configuration changes.
+You could simply build an image from your source code and let them worry about providing Redis and the YAML for Kubernetes. However, you're nicer than that and you've got this powerful suite of tools at your disposal, so you decide to make it easy for your friends and co-workers to download, configure, and deploy the application.
+This tutorial will walk you through those steps.
 
 #### Pre-requisites
 - [Carvel](https://carvel.dev/#whole-suite) suite installed locally
 - Docker installed locally
 - Access to a Kubernetes cluster
 - Access to an image registry (for publishing images)
+- [pack](https://buildpacks.io/docs/tools/pack/) CLI (for building hello-app image without a Dockerfile)
 
 One option for the cluster and registry is [kind with local registry](https://kind.sigs.k8s.io/docs/user/local-registry).
 This starts a Kubernetes cluster running on Docker on your local machine, with an image registry listening on `localhost:5000`.
