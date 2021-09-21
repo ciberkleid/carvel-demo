@@ -4,5 +4,5 @@ namespace:
   owner: true
 
 helloApp:
-  name: hello-app
+  name: hello-friends
   message: friends
