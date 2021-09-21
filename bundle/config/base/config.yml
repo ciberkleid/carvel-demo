@@ -29,7 +29,7 @@ spec:
       labels: #@ labels()
     spec:
       containers:
-        - name: app
+        - name: hello-app
           image: localhost:5000/hello-app
           ports:
             - containerPort: 8080
