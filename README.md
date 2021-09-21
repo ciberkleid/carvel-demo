@@ -43,9 +43,9 @@ That is what is used in the examples below.
 
 To set up the kind cluster, run:
 ```shell
-curl https://kind.sigs.k8s.io/examples/kind-with-registry.sh -o kind-with-registry.sh \
-  && chmod +x kind-with-registry.sh \
-  && ./kind-with-registry.sh \
+curl https://kind.sigs.k8s.io/examples/kind-with-registry.sh -o temp/kind-with-registry.sh \
+  && chmod +x temp/kind-with-registry.sh \
+  && ./temp/kind-with-registry.sh \
   && kubectl cluster-info --context kind-kind
 ```
 
@@ -234,7 +234,7 @@ ytt -f temp/hello-app-bundle/config \
     -f temp/hello-app-bundle/.imgpkg/images.yml \
     --data-values-file values.yml \
     | kbld -f- \
-    > hello-friends.yml
+    > temp/hello-friends.yml
 ```
 
 This YAML can be applied directly to Kubernetes.
@@ -313,7 +313,7 @@ ytt -f temp/hello-app-bundle-internal/config \
     -f temp/hello-app-bundle-internal/.imgpkg/images.yml \
     --data-values-file values2.yml \
     | kbld -f- \
-    > hello-coworkers.yml
+    > temp/hello-coworkers.yml
 ```
 
 This YAML can be applied directly to Kubernetes.
@@ -326,7 +326,7 @@ Continue to the next step to learn more.
 
 Use kapp to apply the coworkers configuration.
 ```shell
-kapp deploy -a hello-coworkers -f hello-coworkers.yml
+kapp deploy -a hello-coworkers -f temp/hello-coworkers.yml
 ```
 
 Notice that kapp:
@@ -340,25 +340,20 @@ Notice that kapp:
 - provides output related to the deployment
 - waits for resources to be ready before completing
 
-Try a few other kapp commands and notice how kapp treats the various resources as parts of a single application:
+Try a few other kapp commands and notice how kapp treats the various resources as parts of a single application.
+
+List the kapp-managed apps:
 ```shell
 kapp list
 ```
 
+See the full list of resources related to an application:
 ```shell
-kapp inspect -a hello-coworkers
+kapp inspect -a hello-coworkers --tree
 ```
 
-```shell
-kapp logs -a hello-coworkers
-```
-
-```shell
-kapp inspect -a hello-coworkers --raw --tty=false | kbld inspect -f -
-```
-
-With Carvel, it is also easier to deploy multiple instances of an application to the same namespace and manage each app as a whole.
-For example, with a slight change configuration, we can deploy a second instance of hello-app to an existing namespace:
+Deploy another instance of hello-app using a different application name.
+First, review the custom values for this second instance: [values3.yml](values3.yml).
 > Note: Using process substitution rather than piping to kapp preserves the ability to confirm at the prompt.
 ```shell
 kapp deploy -a hello-partners -c -f <(
@@ -368,9 +363,53 @@ kapp deploy -a hello-partners -c -f <(
   | kbld -f-)
 ```
 
-Re-run the kapp commands above using `-a hello-partners`.
+List the kapp-managed apps again:
+```shell
+kapp list
+```
 
-Delete the partner app:
+> **Nice to know:** kapp creates ConfigMaps to track applications and changes. Run `kubectl get cm` to see, and `kubectl get cm <config-map-name> -o yaml` if you're curious to see more.
+
+Delete one of the apps:
 ```shell
 kapp delete -a hello-partners
+```
+
+###### Follow logs and send requests
+
+In another terminal, use kapp to follow the logs for the hello-coworkers pods.
+`kapp logs` gets logs from all instances of all pods.
+Filter by container name and use the `--follow` flag to follow only the hello-app containers:
+```shell
+kapp logs -a hello-coworkers --container-name hello-app --follow
+```
+
+To send requests, rather than using kubectl to port-forward to the service, you can use [kwt](https://github.com/vmware-tanzu/carvel-kwt), an experimental tool in the Carvel tool suite, to access Kubernetes services and pods via DNS or IPs.
+
+List networking details about services in current namespace
+```shell
+kubectl config set-context --current --namespace=working-space
+kwt net svc
+```
+
+If you are working on Linux or OS X, in a separate terminal, the following command will provide access to the services via DNS or IP:
+> Note: you will need to enter your system password
+```shell
+sudo -E kwt net start
+```
+
+Now you can send requests to any of the services using their Kubernetes DNS address:
+```shell
+curl http://hello-coworkers.working-space.svc.cluster.local:8080
+```
+
+Look at the log stream you started previously and notice a line is published to the logs for each reuest you send.
+
+Use `kubectl -n working-space delete pod <pod-name>` to delete one of the pods.
+
+Check the logs again and notice that the new pod startup is reflected there, without needing to restart `kapp logs`.
+
+Delete the coworkers app:
+```shell
+kapp delete -a hello-coworkers --namespace default
 ```
