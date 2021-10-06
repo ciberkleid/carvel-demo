@@ -388,7 +388,7 @@ To send requests, rather than using kubectl to port-forward to the service, you 
 
 List networking details about services in current namespace
 ```shell
-kubectl config set-context --current --namespace=working-space
+kubectl config set-context --current --namespace=coworking-space
 kwt net svc
 ```
 
@@ -400,12 +400,12 @@ sudo -E kwt net start
 
 Now you can send requests to any of the services using their Kubernetes DNS address:
 ```shell
-curl http://hello-coworkers.working-space.svc.cluster.local:8080
+curl http://hello-coworkers.coworking-space.svc.cluster.local:8080
 ```
 
 Look at the log stream you started previously and notice a line is published to the logs for each reuest you send.
 
-Use `kubectl -n working-space delete pod <pod-name>` to delete one of the pods.
+Use `kubectl -n coworking-space delete pod <pod-name>` to delete one of the pods.
 
 Check the logs again and notice that the new pod startup is reflected there, without needing to restart `kapp logs`.
 

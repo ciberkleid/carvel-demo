@@ -1,5 +1,5 @@
 namespace:
-  name: working-space
+  name: coworking-space
   #! Set to null to omit Namespace resource
   owner: null
 
