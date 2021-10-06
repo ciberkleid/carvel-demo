@@ -6,7 +6,7 @@ directories:
     contents:
       - path: redis
         git:
-          url: https://github.com/kubernetes/website
+          url: https://github.com/ciberkleid/carvel-demo-redis
           ref: main
         includePaths:
-          - content/en/examples/application/guestbook/redis-*
+          - redis-*
