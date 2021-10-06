@@ -1,18 +1,13 @@
-#@ load("@ytt:data", "data")
-
 apiVersion: kbld.k14s.io/v1alpha1
 kind: Config
+#! build image
 sources:
 - image: localhost:5000/hello-app
   path: src
   pack:
     build:
       builder: paketobuildpacks/builder
-
-#@ if/end data.values.helloApp.pushImageTag:
----
-apiVersion: kbld.k14s.io/v1alpha1
-kind: Config
+#! publish (push) image
 destinations:
 - image: localhost:5000/hello-app
-  newImage: #@ data.values.helloApp.pushImageTag
+  newImage: localhost:5000/hello-app

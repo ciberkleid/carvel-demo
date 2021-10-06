@@ -12,9 +12,6 @@ helloApp:
   name: hello-app
   message: stranger
 
-  #! Set to null to skip publishing image to registry
-  pushImageTag: localhost:5000/hello-app
-
   ingress:
     hostname: null
     domain: null

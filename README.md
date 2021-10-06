@@ -130,9 +130,9 @@ To achieve #1 above, take a look at the kbld configuration file, [kbld.yml](bund
 - The `sources` section tells kbld to use buildpacks to create an image for hello-app, located in the [src](src) folder.
     - _Buildpacks_ are a separate technology that provides a consistent and structured way to build images, without the need to write Dockerfiles or other custom code.
       You can learn more [here](https://buildpacks.io).
-- The `destinations` section says to push the image to the registry if and only if the `helloApp.pushImageTag` value is set.
+- The `destinations` section says to push the image to a registry using the tag specified in `newImage`.
 
-> **Important:** If you are not using kind with a local registry at `localhost:5000`, update the value of `helloApp.pushImageTag` in the [default values file](bundle/config/default-values.yml) so that it points to a registry to which you can publish, and make sure you are authenticated to your registry (i.e. run [docker login](https://docs.docker.com/engine/reference/commandline/login) at your command line). 
+> **Important:** If you are not using kind with a local registry at `localhost:5000`, update the value of `newImage` in the [kbld config file](bundle/kbld.yml) so that it points to a registry to which you can publish, and make sure you are authenticated to your registry (i.e. run [docker login](https://docs.docker.com/engine/reference/commandline/login) at your command line). 
 
 Run kbld on the YAML configuration files.
 This can be done on the raw YAML or on the ytt-processed YAML.
@@ -347,6 +347,8 @@ List the kapp-managed apps:
 kapp list
 ```
 
+> **Nice to know:** kapp creates ConfigMaps to track applications and changes. Run `kubectl get cm` to see, and `kubectl get cm <config-map-name> -o yaml` if you're curious to see more.
+
 See the full list of resources related to an application:
 ```shell
 kapp inspect -a hello-coworkers --tree
@@ -367,8 +369,6 @@ List the kapp-managed apps again:
 ```shell
 kapp list
 ```
-
-> **Nice to know:** kapp creates ConfigMaps to track applications and changes. Run `kubectl get cm` to see, and `kubectl get cm <config-map-name> -o yaml` if you're curious to see more.
 
 Delete one of the apps:
 ```shell
