@@ -64,9 +64,9 @@ It specifies a git repo as a source of Redis YAML config files, as well as a des
 
 Run the following command to sync the remote files to your local machine.
 This step also generates a lock file that can be used to pin the version in subsequent executions.
-> Note: If you already had a vendir lock file and wanted to sync using the pinned version, you could uncomment the _--locked_ flag.
+> Note: If you already had a vendir lock file and wanted to sync using the pinned version, add a `--locked` flag.
 ```shell
-vendir sync --chdir bundle # --locked
+vendir sync --chdir bundle
 ```
 
 This command can take some time to complete.
