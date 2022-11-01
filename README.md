@@ -49,6 +49,14 @@ curl https://kind.sigs.k8s.io/examples/kind-with-registry.sh -o temp/kind-with-r
   && kubectl cluster-info --context kind-kind
 ```
 
+If you use the option above (kind with local registry), run the following command to set the local registry address as an environment variable. 
+> Note: If you use a different registry, replace the value below and set the `MY_REG` environment variable with the appropriate value for your registry of choice.
+> Make sure you are authenticated to your registry using [docker login](https://docs.docker.com/engine/reference/commandline/login).
+```shell
+export MY_REG="localhost:5000"
+```
+
+
 **Let's get started!**
 
 #### Vendor in Redis dependency
@@ -107,7 +115,7 @@ However, this YAML is not specific enough to guarantee reproducible deployments 
 To see this, you can re-run the above command and add ` | grep "image:"` at the end.
 The output should look something like this:
 ```yaml
-        image: localhost:5000/hello-app
+        image: $MY_REG/hello-app
         image: gcr.io/google_samples/gb-redis-follower:v2
         image: docker.io/redis:6.0.5
 ```
@@ -149,7 +157,7 @@ kbld  -f bundle/kbld.yml \
 Check your registry to verify that the hello-app image was published.
 This shows that objective #1 above was achieved.
 ```shell
-curl localhost:5000/v2/hello-app/tags/list
+curl $MY_REG/v2/hello-app/tags/list
 ```
 
 Also, verify that the lock file that was created, [images.yml](bundle/.imgpkg/images.yml).
@@ -193,14 +201,14 @@ In addition, imgpkg can copy any images referenced to a target registry, making 
 Run the following command to package the demo app and publish it to a registry.
 
 ```shell
-imgpkg push -b localhost:5000/hello-app-bundle:v1.0.0 \
+imgpkg push -b $MY_REG/hello-app-bundle:v1.0.0 \
             -f bundle \
             --lock-output bundle/bundle.lock.yml
 ```
 
 Check your registry to verify that the hello-app-bundle image was published. 
 ```shell
-curl localhost:5000/v2/hello-app-bundle/tags/list
+curl $MY_REG/v2/hello-app-bundle/tags/list
 ```
 
 The output should look something like this.
@@ -222,7 +230,7 @@ Let's go through the workflow they would follow.
 
 Use `imgpkg pull` to download and unpack the imgpkg bundle to a local directory:
 ```shell
-imgpkg pull -b localhost:5000/hello-app-bundle:v1.0.0 \
+imgpkg pull -b $MY_REG/hello-app-bundle:v1.0.0 \
             -o temp/hello-app-bundle
 ```
 
@@ -251,13 +259,13 @@ Let's go through the workflow they would follow.
 Use `imgpkg copy` to copy the bundle to an internal registry.
 For the purposes of this demo, we'll use another namespace in the same local registry to represent an internal registry in a co-worker's environment, and we'll assume there is a jump box with access to the internet and the local registry.
 ```shell
-imgpkg copy -b localhost:5000/hello-app-bundle:v1.0.0 \
-            --to-repo localhost:5000/hello-app-bundle-internal
+imgpkg copy -b $MY_REG/hello-app-bundle:v1.0.0 \
+            --to-repo $MY_REG/hello-app-bundle-internal
 ```
 
 Check the "internal registry" to ensure that all images have been copied.
 ```shell
-curl localhost:5000/v2/hello-app-bundle-internal/tags/list
+curl $MY_REG/v2/hello-app-bundle-internal/tags/list
 ```
 
 The output should look something like this.
@@ -278,7 +286,7 @@ You can compare the SHAs to those in the image lock to figure out which images a
 
 Your co-workers can now pull the internal copy of the bundle to their local machines:
 ```shell
-imgpkg pull -b localhost:5000/hello-app-bundle-internal:v1.0.0 \
+imgpkg pull -b $MY_REG/hello-app-bundle-internal:v1.0.0 \
             -o temp/hello-app-bundle-internal
 ```
 
